@@ -16,7 +16,7 @@ router.post('/', async (req, res, next) => {
 
     const seller = await prisma.seller.findUnique({ where: { id: req.sellerId }, select: { openaiModelId: true } });
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
     const prompt = `Você é especialista em marketplace Shopee Brasil.
 Produto: ${nome}
 ${categoria ? `Categoria: ${categoria}` : ''}
