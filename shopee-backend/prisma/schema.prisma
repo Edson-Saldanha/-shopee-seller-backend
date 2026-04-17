@@ -1,0 +1,105 @@
+// prisma/schema.prisma
+// Rode: npx prisma generate  (após instalar dependências)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Seller {
+  id             String   @id @default(uuid()) @db.Uuid
+  nome           String   @db.VarChar(150)
+  email          String   @unique @db.VarChar(255)
+  senhaHash      String   @map("senha_hash")
+  plano          String   @default("free") @db.VarChar(30)
+  openaiModelId  String?  @map("openai_model_id") @db.VarChar(100)
+  criadoEm      DateTime @default(now()) @map("criado_em") @db.Timestamptz
+  atualizadoEm  DateTime @default(now()) @updatedAt @map("atualizado_em") @db.Timestamptz
+
+  produtos        Produto[]
+  geracoes        Geracao[]
+  imagensTreino   ImagemTreino[]
+  fineTuningJobs  FineTuningJob[]
+
+  @@map("sellers")
+}
+
+model Produto {
+  id              String   @id @default(uuid()) @db.Uuid
+  sellerId        String   @map("seller_id") @db.Uuid
+  nome            String   @db.VarChar(255)
+  categoria       String?  @db.VarChar(100)
+  preco           String?  @db.VarChar(30)
+  caracteristicas String?
+  publicoAlvo     String?  @map("publico_alvo") @db.VarChar(255)
+  tom             String   @default("persuasivo") @db.VarChar(50)
+  criadoEm       DateTime @default(now()) @map("criado_em") @db.Timestamptz
+
+  seller   Seller    @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  geracoes Geracao[]
+
+  @@map("produtos")
+}
+
+model Geracao {
+  id                 String   @id @default(uuid()) @db.Uuid
+  produtoId          String   @map("produto_id") @db.Uuid
+  sellerId           String   @map("seller_id") @db.Uuid
+  tituloPrincipal    String   @map("titulo_principal")
+  tituloAlternativo  String?  @map("titulo_alternativo")
+  descricao          String
+  palavrasChave      String[] @map("palavras_chave")
+  urlImagem          String?  @map("url_imagem")
+  promptImagem       String?  @map("prompt_imagem")
+  modeloImagem       String?  @default("dall-e-3") @map("modelo_imagem") @db.VarChar(80)
+  tamanhoImagem      String?  @default("1024x1024") @map("tamanho_imagem") @db.VarChar(20)
+  tokensUsados       Int?     @default(0) @map("tokens_usados")
+  criadoEm          DateTime @default(now()) @map("criado_em") @db.Timestamptz
+
+  produto Produto @relation(fields: [produtoId], references: [id], onDelete: Cascade)
+  seller  Seller  @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+
+  @@map("geracoes")
+}
+
+model ImagemTreino {
+  id             String   @id @default(uuid()) @db.Uuid
+  sellerId       String   @map("seller_id") @db.Uuid
+  urlOriginal    String   @map("url_original")
+  urlCloudinary  String?  @map("url_cloudinary")
+  publicId       String?  @map("public_id") @db.VarChar(255)
+  descricaoIa    String?  @map("descricao_ia")
+  categoriaIa    String?  @map("categoria_ia") @db.VarChar(100)
+  corIa          String?  @map("cor_ia") @db.VarChar(80)
+  materialIa     String?  @map("material_ia") @db.VarChar(80)
+  status         String   @default("pendente") @db.VarChar(30)
+  tamanhoBytes   Int?     @map("tamanho_bytes")
+  formato        String?  @db.VarChar(10)
+  criadoEm      DateTime @default(now()) @map("criado_em") @db.Timestamptz
+
+  seller Seller @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+
+  @@map("imagens_treino")
+}
+
+model FineTuningJob {
+  id                String    @id @default(uuid()) @db.Uuid
+  sellerId          String    @map("seller_id") @db.Uuid
+  openaiJobId       String?   @unique @map("openai_job_id") @db.VarChar(100)
+  openaiFileId      String?   @map("openai_file_id") @db.VarChar(100)
+  status            String    @default("preparando") @db.VarChar(30)
+  totalImagens      Int       @default(0) @map("total_imagens")
+  modeloBase        String?   @default("gpt-4o-mini") @map("modelo_base") @db.VarChar(80)
+  modeloResultante  String?   @map("modelo_resultante") @db.VarChar(100)
+  erroMensagem      String?   @map("erro_mensagem")
+  iniciadoEm        DateTime  @default(now()) @map("iniciado_em") @db.Timestamptz
+  concluidoEm       DateTime? @map("concluido_em") @db.Timestamptz
+
+  seller Seller @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+
+  @@map("fine_tuning_jobs")
+}
